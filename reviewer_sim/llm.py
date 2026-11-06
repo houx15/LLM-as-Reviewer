@@ -229,3 +229,24 @@ class _RequestCache:
             self._map[req_hash] = rec
             with open(self.path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def run_parallel(fn, items, max_workers: int = 8, desc: str = "") -> list:
+    """Map fn(index, item) over items preserving order; failures re-raised.
+
+    The cache and log are thread-safe, so this is safe for LLM calls.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    results: list[Any] = [None] * len(items)
+    if not items:
+        return results
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(items))) as ex:
+        futs = {ex.submit(fn, i, it): i for i, it in enumerate(items)}
+        done = 0
+        for fut in as_completed(futs):
+            results[futs[fut]] = fut.result()
+            done += 1
+            if desc and done % 50 == 0:
+                print(f"[{desc}] {done}/{len(items)}", flush=True)
+    return results

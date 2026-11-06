@@ -18,6 +18,7 @@ dependencies = [
     "scikit-learn>=1.4",     # Study 3 reference classifier
     "matplotlib>=3.8",
     "seaborn>=0.13.2",
+    "requests>=2.34.2",
 ]
 
 [dependency-groups]

@@ -7,11 +7,13 @@ descriptions and input groups exactly as the benchmark defines them.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -149,7 +151,24 @@ def input_group_values(name: str) -> list[str]:
 
 
 def input_group_of(name: str, value: Any) -> str:
-    """Map one input value to its group category."""
+    """Map one input value to its group category (NaN -> "Missing").
+
+    Missingness is informative in GSS (e.g. father_education ~28% missing), so
+    it is kept as its own category for tables and the log-linear design.
+    """
+    try:
+        if value is None or pd.isna(value):
+            return "Missing"
+    except (TypeError, ValueError):
+        pass
     if name == "age":
         return age_band(float(value))
     return str(value)
+
+
+def input_group_values_with_missing(name: str, rows: "object") -> list[str]:
+    """Config categories, plus 'Missing' when the rows contain NaN values."""
+    vals = input_group_values(name)
+    if rows[name].isna().any():
+        return [*vals, "Missing"]
+    return list(vals)
