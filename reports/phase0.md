@@ -22,7 +22,12 @@ Status: **in progress** (filled as results land; checkpoint at the end)
 
 | model | valid rate | duplicate share | mean per-output entropy | mean pairwise Hamming |
 | --- | --- | --- | --- | --- |
-| (pending) | | | | |
+| qwen/qwen3-32b | 1.000 | 0.008 | 0.636 | 0.296 |
+| google/gemini-2.5-flash (test model) | 0.9997 | 0.112 | 0.512 | 0.242 |
+
+**Choice [default rule]: `qwen/qwen3-32b`** — the most diverse by mean entropy with 100%
+valid outputs. Side observation: the test model duplicates 11.2% of profiles within 10
+draws at temperature 1.0 — generation-side compression visible already.
 
 Choice rule [default]: the most diverse model by mean entropy among those with ≥ 90%
 valid outputs. Both candidates are run through Study 1 in any case (test model as
