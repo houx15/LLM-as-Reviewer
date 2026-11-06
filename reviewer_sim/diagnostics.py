@@ -52,6 +52,14 @@ def association(y: pd.Series, x: pd.Series, y_numeric: bool) -> float:
     return cramers_v(y, x)
 
 
+def _canon(s: pd.Series, numeric: bool) -> pd.Series:
+    """Canonicalize a column's values: numeric -> float ("" to NaN);
+    categorical -> stripped strings (NaN/'nan'/'' to NaN)."""
+    if numeric:
+        return pd.to_numeric(s, errors="coerce")
+    return s.astype("string").str.strip().replace({"": pd.NA, "nan": pd.NA, "None": pd.NA})
+
+
 def study1_diagnostics(
     real: pd.DataFrame,
     sim: pd.DataFrame,
@@ -68,15 +76,19 @@ def study1_diagnostics(
 
     fs = load_fields()[question]
     y_num = fs.is_numeric
+    real_q = _canon(real[question], y_num)
+    sim_q = _canon(sim[question], y_num)
 
     out: dict = {}
 
     # marginal TV distance
-    rm = real[question].dropna().value_counts(normalize=True)
-    sm = sim[question].dropna().value_counts(normalize=True)
-    keys = sorted(set(rm.index) | set(sm.index))
+    rm = real_q.dropna().value_counts(normalize=True)
+    sm = sim_q.dropna().value_counts(normalize=True)
+    keys = sorted(set(rm.index.astype(str)) | set(sm.index.astype(str)))
+    rmd = {str(k): v for k, v in rm.items()}
+    smd = {str(k): v for k, v in sm.items()}
     out["tv_distance"] = float(
-        0.5 * sum(abs(rm.get(k, 0.0) - sm.get(k, 0.0)) for k in keys)
+        0.5 * sum(abs(rmd.get(k, 0.0) - smd.get(k, 0.0)) for k in keys)
     )
 
     def _grp(iname, v):
@@ -93,8 +105,8 @@ def study1_diagnostics(
             if len(gidx) < min_rows:
                 continue
             total_groups += 1
-            r_vals = real.loc[gidx, question]
-            s_vals = sim.loc[sim_grp == gname, question]
+            r_vals = real_q.loc[gidx]
+            s_vals = sim_q.loc[sim_grp == gname]
             sr = _spread(r_vals, y_num)
             ss = _spread(s_vals, y_num)
             ratio = ss / sr if sr and sr == sr and ss == ss and sr > 1e-12 else float("nan")
@@ -113,8 +125,8 @@ def study1_diagnostics(
     # signed association difference per input (model - real)
     assoc = {}
     for iname in input_names:
-        a_r = association(real[question], real[iname], y_num)
-        a_s = association(sim[question], sim[iname], y_num)
+        a_r = association(real_q, real[iname], y_num)
+        a_s = association(sim_q, sim[iname], y_num)
         assoc[iname] = {
             "real": a_r, "model": a_s,
             "diff": (a_s - a_r) if (a_s == a_s and a_r == a_r) else float("nan"),
@@ -123,5 +135,5 @@ def study1_diagnostics(
     out["association_diff_mean"] = float(np.nanmean([v["diff"] for v in assoc.values()]))
 
     # missing rate
-    out["missing_rate"] = float(sim[question].isna().mean() + (sim[question] == "").mean())
+    out["missing_rate"] = float(sim_q.isna().mean())
     return out
