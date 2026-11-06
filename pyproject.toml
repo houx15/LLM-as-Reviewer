@@ -17,6 +17,7 @@ dependencies = [
     "tqdm>=4.66",
     "scikit-learn>=1.4",     # Study 3 reference classifier
     "matplotlib>=3.8",
+    "seaborn>=0.13.2",
 ]
 
 [dependency-groups]
@@ -35,6 +36,7 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: slow tests (scoring integration)"]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,107 @@
++++ b/evaluation/code_by_type/type1.py	2026-11-06 11:13:46
+@@ -106,7 +106,10 @@
+                    bootstrap_B: Optional[int] = None,
+                    bootstrap_sample_n: Optional[int] = None,
+                    alpha: Optional[float] = None,
+-                   verbose: bool = True):
++                   verbose: bool = True,
++                   seed: Optional[int] = None):
++    # SEED PATCH: one seeded generator threads through every bootstrap test.
++    rng = np.random.default_rng(seed)
+     if isinstance(config, str):
+         cfg = read_config(config)
+     else:
+@@ -155,7 +158,7 @@
+             "sim": sim_entropy
+         })
+             rate = bootstrap_categorical_insignificance(r, s, B=B, alpha=a, id_col="profile_id",
+-                                         sample_n=S, ratio=1.0, rng=None)
++                                         sample_n=S, ratio=1.0, rng=rng)
+ 
+ 
+         else:
+@@ -172,7 +175,7 @@
+                 s[var] = np.where(s[var] >= 0, np.log1p(s[var]), np.nan)
+             
+             rate = bootstrap_numeric_insignificance(r, s, B=B, alpha=a, id_col="profile_id",
+-                                         sample_n=S, ratio=1.0, rng=None)
++                                         sample_n=S, ratio=1.0, rng=rng)
+ 
+         results.append({
+             "variable": var,
++++ b/evaluation/code_by_type/type2.py	2026-11-06 11:13:51
+@@ -290,11 +290,14 @@
+ # ================== Main ==================
+ def run_type2_eval(config, real_csv=None, sim_csv=None, out_dir=None,
+                         bootstrap_B=None, bootstrap_sample_n=None, alpha=None,
+-                        ratio=1.0, verbose=True):
++                        ratio=1.0, verbose=True, seed=None):
+     """
+     Run Type2 evaluation for STRENGTH mode.
+     Runs bootstrap tests for all variable pairs and outputs summary CSVs and plots.
++
++    SEED PATCH: one seeded generator threads through every pair's bootstrap.
+     """
++    rng = np.random.default_rng(seed)
+     if isinstance(config, str):
+         cfg = read_config(config)
+     else:
+@@ -337,7 +340,7 @@
+ 
+             res = _bootstrap_assoc_significance(
+                 df_real, df_sim, v1, v2, cfg1, cfg2,
+-                B, a, sample_n, ratio
++                B, a, sample_n, ratio, rng
+             )
+             if res is not None:
+                 results.append(res)
++++ b/evaluation/code_by_type/type3.py	2026-11-06 11:14:05
+@@ -109,9 +109,14 @@
+ 
+ def _bootstrap_regression_significance(
+     df_real, df_sim, model_type, y, Xs, B, alpha, sample_n, ratio,
+-    id_col="profile_id", out_dir="./Compare_Type3", mode="strength"
++    id_col="profile_id", out_dir="./Compare_Type3", mode="strength", rng=None
+ ):
+-    """Bootstrap regression comparison under strength mode."""
++    """Bootstrap regression comparison under strength mode.
++
++    SEED PATCH: accepts an rng threaded from run_type3_eval.
++    """
++    if rng is None:
++        rng = np.random.default_rng()
+     if id_col not in df_real.columns or id_col not in df_sim.columns:
+         raise ValueError(f"❌ Both df_real and df_sim must contain '{id_col}' for matched bootstrap.")
+ 
+@@ -125,7 +130,6 @@
+ 
+     n = len(common_ids)
+     n_b = int(sample_n or round(n * ratio))
+-    rng = np.random.default_rng()
+     points, beta_logs = [], []
+     success_count, fail_count = 0, 0
+     formula = f"{y} ~ {' + '.join(Xs)}"
+@@ -226,6 +230,7 @@
+     bootstrap_sample_n=None,
+     alpha=None,
+     verbose=True,
++    seed=None,
+ ):
+     """
+     Type3 evaluation entrypoint.
+@@ -284,12 +289,14 @@
+         return
+ 
+     print(f"\n------ Evaluating STRENGTH mode ------")
++    # SEED PATCH: one seeded generator threads through every response's bootstrap.
++    rng = np.random.default_rng(seed)
+     results = []
+     for y, mt in success_outcomes:
+         res = _bootstrap_regression_significance(
+             df_real, df_sim, mt, y, Xs,
+             B, a, sample_n, ratio,
+-            mode="strength"
++            mode="strength", rng=rng
+         )
+         results.append(res)
+         if verbose:
