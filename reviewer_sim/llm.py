@@ -56,7 +56,7 @@ class LLMClient:
         log_path: str | Path,
         api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
-        max_workers: int = 8,
+        max_workers: int = 16,
     ):
         self.cache_path = Path(cache_path)
         self.log_path = Path(log_path)

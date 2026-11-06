@@ -91,6 +91,20 @@ def cmd_study1(args) -> None:
     print(f"\nfull results: {out_root / 'study1_results.csv'}")
 
 
+def cmd_genchoice(args) -> None:
+    from .conditions.genchoice import run_genchoice  # noqa: PLC0415
+
+    models = dict(g.split("=", 1) for g in args.model)
+    df = run_genchoice(
+        models,
+        out_dir=REPO / "runs" / "phase0" / "genchoice",
+        cache_root=REPO / "runs" / "phase0" / "cache",
+        n_rows=args.n_rows,
+    )
+    print("\n==== Table S1: generator choice ====")
+    print(df.to_string(index=False))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="reviewer_sim")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -110,6 +124,11 @@ def main() -> None:
     s1.add_argument("--max-rows", type=int, default=None)
     s1.add_argument("--tag", default=None)
     s1.set_defaults(func=cmd_study1)
+
+    gc = sub.add_parser("genchoice")
+    gc.add_argument("--model", action="append", required=True, help="name=model_id")
+    gc.add_argument("--n-rows", type=int, default=50)
+    gc.set_defaults(func=cmd_genchoice)
 
     args = ap.parse_args()
     args.func(args)
