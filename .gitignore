@@ -1,0 +1,24 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# uv
+# (uv.lock IS tracked: pinned deps for reproducibility)
+
+# large / regenerable artifacts
+data/raw/
+data/processed/
+runs/
+data/stated_tables/
+*.log
+
+# OS
+.DS_Store
