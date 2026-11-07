@@ -105,6 +105,46 @@ def cmd_genchoice(args) -> None:
     print(df.to_string(index=False))
 
 
+def cmd_refs(_args) -> None:
+    from .conditions.phase1 import run_references  # noqa: PLC0415
+
+    out = run_references(REPO / "runs" / "phase1")
+    print(out["results"].groupby("ref").agg(
+        t1=("type1", "mean"), t2=("type2", "mean"), t3=("type3", "mean"),
+        agg=("aggregate", "mean")).round(3).to_string())
+
+
+def cmd_b4(args) -> None:
+    from .conditions.phase1 import run_b4_preliminary  # noqa: PLC0415
+
+    out = run_b4_preliminary(
+        args.model,
+        out_root=REPO / "runs" / "phase1" / "b4",
+        cache_root=REPO / "runs" / "phase0" / "cache",
+        rows_name=args.rows,
+        runs=args.runs,
+    )
+    print(out["results"].to_string(index=False))
+
+
+def cmd_study3refs(_args) -> None:
+    from . import devdata, study3refs  # noqa: PLC0415
+
+    fit = devdata.load_rows("fitting")
+    bn = study3refs.fit_bayesian_network(fit)
+    n_edges = len(bn.edges())
+    clf, train_acc = study3refs.fit_discriminator(fit)
+    import pickle  # noqa: PLC0415
+
+    out = REPO / "data" / "study3_refs"
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / "bn.pkl", "wb") as f:
+        pickle.dump(bn, f)
+    with open(out / "gbm.pkl", "wb") as f:
+        pickle.dump(clf, f)
+    print(f"BN: {n_edges} edges; GBM train acc vs swapped: {train_acc:.3f}; saved to {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="reviewer_sim")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -129,6 +169,16 @@ def main() -> None:
     gc.add_argument("--model", action="append", required=True, help="name=model_id")
     gc.add_argument("--n-rows", type=int, default=50)
     gc.set_defaults(func=cmd_genchoice)
+
+    sub.add_parser("refs").set_defaults(func=cmd_refs)
+
+    b4p = sub.add_parser("b4")
+    b4p.add_argument("--model", default="google/gemini-2.5-flash")
+    b4p.add_argument("--rows", default="pilot")
+    b4p.add_argument("--runs", type=int, default=1)
+    b4p.set_defaults(func=cmd_b4)
+
+    sub.add_parser("study3refs").set_defaults(func=cmd_study3refs)
 
     args = ap.parse_args()
     args.func(args)
