@@ -437,3 +437,89 @@ def state_table_prompt(
     prompt = _join(framing, w, answers_block(fs), OUT_JSON_ALLOWED)
     meta = {"family": 6, "wording": wording, "question": question, "group": group_description}
     return prompt, meta
+
+
+# --------------------------------------------------------------------------- #
+# B6: population-level batch generation (single official wording, SPEC §6.1)
+# --------------------------------------------------------------------------- #
+
+
+def b6_batch_prompt(input_rows: list[dict[str, object]]) -> tuple[str, dict]:
+    """Official framing for 10 input rows; asks for 10 profiles in one JSON
+    array, reflecting the real variation among such people."""
+    fields = [f for f in load_fields().values() if f.role == "y"]
+    framing = official_framing(None, fields)
+    lines = [
+        f"{i + 1}. " + ", ".join(f"{k}: {_format_value(v)}" for k, v in row.items())
+        for i, row in enumerate(input_rows)
+    ]
+    block = "Here are the input attributes of 10 respondents:\n" + "\n".join(lines)
+    instr = (
+        "Simulate one *randomly selected* synthetic individual for EACH of the 10 "
+        "respondents listed above. Return a JSON array of EXACTLY 10 objects, in the "
+        "same order as the respondents; each object contains EXACTLY these keys:\n"
+        f"{', '.join(f.name for f in fields)}.\n"
+        "The 10 individuals should reflect the real variation among such people: "
+        "differ across respondents and differ from each other in the way real "
+        "respondents in this population differ, not 10 copies of the most typical "
+        "person."
+    )
+    prompt = framing + "\n\n" + block + "\n\n" + instr
+    return prompt, {"family": "b6", "n_rows": len(input_rows)}
+
+
+# --------------------------------------------------------------------------- #
+# R3: dependency graph proposal (single structural call, SPEC §6.2)
+# --------------------------------------------------------------------------- #
+
+
+def judge_profiles_with_tables(
+    inputs: dict[str, object],
+    profiles: list[dict[str, object]],
+    current_summary: str,
+    stated_target: str,
+    seed: int,
+) -> tuple[str, dict]:
+    """P5-view judge (single wording W1): candidates + current population
+    tables + stated target tables; asked which candidate to add next."""
+    from .prompts import label_candidates, profile_block  # noqa: PLC0415
+
+    fields = [f for f in load_fields().values() if f.role == "y"]
+    framing = official_framing(inputs, fields)
+    lab = label_candidates(len(profiles), seed)
+    keys = [f.name for f in fields]
+    block = profile_block(profiles, keys, lab)
+    w = (
+        "You are adding respondents to a synthetic dataset one at a time. Below are "
+        "candidate profiles for this respondent, the dataset built so far (current "
+        "distributions within this respondent's groups), and the target distributions "
+        "the finished dataset should match. Judge each candidate both as a plausible "
+        "real respondent and by whether adding it moves the dataset toward the target. "
+        "Give a probability for each candidate; they must sum to 1."
+    )
+    cur = "Dataset built so far, within this respondent's input groups:\n" + current_summary
+    tgt = "Target distributions (stated):\n" + stated_target
+    instr = 'Return JSON only, one key per label, e.g. {"A": 0.4, "B": 0.6}.'
+    prompt = framing + "\n\n" + w + "\n\n" + cur + "\n\n" + tgt + "\n\nCandidate profiles:\n" + block + "\n\n" + instr
+    meta = {"family": "p5view", "label_of": lab.label_of, "seed": seed}
+    return prompt, meta
+
+
+def r3_graph_prompt() -> tuple[str, dict]:
+    """List the 21 outputs; ask for up to 3 parent outputs each."""
+    fields = [f for f in load_fields().values() if f.role == "y"]
+    names = [f.name for f in fields]
+    desc_lines = [f"- {f.name}: {f.description}" for f in fields]
+    prompt = (
+        "You are describing how answers in a survey interview depend on each other "
+        "for one respondent. The survey covers the following questions:\n"
+        + "\n".join(desc_lines)
+        + "\n\nFor each question, list up to 3 OTHER questions whose answers "
+        "directly influence it for the same person (e.g. spouse_occupation depends "
+        "on marital_status). Use only questions from the list. Prefer the fewest, "
+        "strongest dependencies; use an empty list when an answer does not depend "
+        "on other answers. Do not create circular dependencies.\n"
+        "Return JSON only, one key per question, e.g.\n"
+        '{"marital_status": [], "spouse_occupation": ["marital_status"]}'
+    )
+    return prompt, {"family": "r3_graph", "outputs": names}

@@ -145,6 +145,34 @@ def cmd_study3refs(_args) -> None:
     print(f"BN: {n_edges} edges; GBM train acc vs swapped: {train_acc:.3f}; saved to {out}")
 
 
+def cmd_phase2(args) -> None:
+    from .conditions.phase2_main import run_phase2  # noqa: PLC0415
+    from .conditions.study3 import run_study3  # noqa: PLC0415
+
+    out = run_phase2(
+        judge_model=args.judge_model,
+        small_model=args.small_model,
+        out_root=REPO / "runs" / "phase2",
+        cache_root=REPO / "runs" / "phase0" / "cache",
+    )
+    print(out["results"].groupby(["condition", "wording"])[
+        ["type1", "type2", "type3", "aggregate"]].mean().round(3).to_string())
+
+    if not args.skip_study3:
+        import pandas as pd  # noqa: PLC0415
+
+        b4 = pd.read_csv(REPO / "runs" / "phase1" / "b4" / "b4_profiles.csv")
+        client = out.get("client")
+        if client is None:
+            from .llm import LLMClient  # noqa: PLC0415
+
+            client = LLMClient(
+                cache_path=REPO / "runs" / "phase0" / "cache" / "cache.jsonl",
+                log_path=REPO / "runs" / "phase0" / "cache" / "calls.jsonl",
+            )
+        run_study3(client, args.judge_model, REPO / "runs" / "phase2" / "study3", b4)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="reviewer_sim")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -179,6 +207,12 @@ def main() -> None:
     b4p.set_defaults(func=cmd_b4)
 
     sub.add_parser("study3refs").set_defaults(func=cmd_study3refs)
+
+    ph2 = sub.add_parser("phase2")
+    ph2.add_argument("--judge-model", default="google/gemini-2.5-flash")
+    ph2.add_argument("--small-model", default="qwen/qwen3-32b")
+    ph2.add_argument("--skip-study3", action="store_true")
+    ph2.set_defaults(func=cmd_phase2)
 
     args = ap.parse_args()
     args.func(args)
