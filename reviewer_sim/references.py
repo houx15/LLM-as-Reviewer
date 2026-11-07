@@ -181,6 +181,11 @@ def fit_copula(fit: pd.DataFrame, min_n: int = 30) -> CopulaRef:
     coded = pd.DataFrame({q: code(q, fit[q]) for q in outs})
     scores = coded.apply(_normal_scores)
     corr = scores.corr().values
+    # pairs co-observed only within a constant subset (GSS split-ballot modules
+    # asked of one laborforce group only) have undefined correlation: treat as
+    # independent before projection.
+    corr = np.nan_to_num(corr, nan=0.0)
+    np.fill_diagonal(corr, 1.0)
 
     # project to nearest positive-definite matrix (eigenvalue clipping)
     w, V = np.linalg.eigh((corr + corr.T) / 2)

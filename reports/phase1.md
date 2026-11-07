@@ -56,11 +56,18 @@ complete data (no missing), like the LLM methods.
 
 Fresh official generation on the 500 pilot rows (no replication run exists; the agent_*
 folders are extended-schema 500-row experiments from a previous project — see Phase 0
-deviations). 3 scoring seeds.
+deviations). 500 API calls (all cached for Phase 2 reuse), 3 scoring seeds.
 
-| run | Type 1 | Type 2 | Type 3 | aggregate | complete-rate |
-| --- | --- | --- | --- | --- | --- |
-| (pending) | | | | | |
+| run | Type 1 | Type 2 | Type 3 | aggregate |
+| --- | --- | --- | --- | --- |
+| 1 | 0.056 | 0.439 | 0.125 | 0.207 |
+| 2 | 0.055 | 0.440 | 0.108 | 0.201 |
+| 3 | 0.052 | 0.436 | 0.095 | 0.194 |
+| **mean** | **0.054** | **0.438** | **0.109** | **0.201** |
+
+Complete-rate 1.000 (official retry loop). Generation fails univariate realism almost
+completely (Type 1 ≈ 0.05), exactly the compression SSDataBench reports; associations
+survive better (Type 2 ≈ 0.44). For scale: S7's political_view Type 1 was 0.84–0.91.
 
 The paper's published gemini-2.5-flash GSS 2018 score is **pending from the user**; the
 formal reproduction check happens in Phase 4 with the benchmark sample.
