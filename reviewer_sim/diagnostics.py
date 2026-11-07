@@ -53,10 +53,12 @@ def association(y: pd.Series, x: pd.Series, y_numeric: bool) -> float:
 
 
 def _canon(s: pd.Series, numeric: bool) -> pd.Series:
-    """Canonicalize a column's values: numeric -> float ("" to NaN);
-    categorical -> stripped strings (NaN/'nan'/'' to NaN)."""
+    """Canonicalize a column's values: numeric -> Int64 ("" to NA; all numeric
+    fields here are integer-valued, so real floats and sim strings unify);
+    categorical -> stripped strings (NaN/'nan'/'' to NA)."""
     if numeric:
-        return pd.to_numeric(s, errors="coerce")
+        v = pd.to_numeric(s, errors="coerce")
+        return v.round().astype("Int64")
     return s.astype("string").str.strip().replace({"": pd.NA, "nan": pd.NA, "None": pd.NA})
 
 
