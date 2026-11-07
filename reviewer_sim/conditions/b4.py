@@ -69,10 +69,12 @@ def generate_b4(
 
     all_rows = run_parallel(one_row, list(rows.iterrows()),
                             max_workers=client.max_workers, desc=f"b4/{model}")
+    in_cols = [c for c in rows.columns if c in set(input_names()) | {"resp_id"}]
     out = []
     for i, draws in enumerate(all_rows):
         for j, rec in enumerate(draws):
-            base = {"profile_id": rows.iloc[i]["profile_id"]}
+            base = {c: rows.iloc[i][c] for c in in_cols}
+            base["profile_id"] = rows.iloc[i]["profile_id"]
             if n_profiles > 1:
                 base["draw"] = j
             out.append({**base, **rec})

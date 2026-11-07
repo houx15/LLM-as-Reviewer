@@ -41,8 +41,14 @@ def bin_mental_health(v) -> str:
 
 
 def bin_age_first_childbirth(v) -> str:
-    if isinstance(v, str) or pd.isna(v):
-        return "NA" if pd.isna(v) else str(v)
+    if isinstance(v, str):
+        try:
+            x = float(v)
+        except ValueError:
+            return v  # special label ("No Child")
+        v = x
+    if pd.isna(v):
+        return "NA"
     x = float(v)
     for lab, lo, hi in zip(AFC_LABELS, AFC_BINS[:-1], AFC_BINS[1:], strict=True):
         if lo <= x <= hi:
@@ -139,9 +145,13 @@ def ordinal_code(df: pd.DataFrame) -> pd.DataFrame:
             def _code(v, sp=sp):
                 if pd.isna(v):
                     return -1.0
-                if isinstance(v, str):
-                    return float(sp.get(v, -1.0))
-                return float(v)
+                sv = str(v)
+                if sv in sp:
+                    return float(sp[sv])
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    return -1.0
 
             parts.append((q, df[q].map(_code)))
     return pd.DataFrame({k: pd.Series(v, index=df.index) for k, v in parts})

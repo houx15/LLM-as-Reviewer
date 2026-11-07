@@ -164,7 +164,19 @@ def fit_copula(fit: pd.DataFrame, min_n: int = 30) -> CopulaRef:
             return s.map(lambda v: idx.get(str(v), np.nan))
         assert f.numeric is not None
         sp = {v: f.numeric.max + 1 + i for i, v in enumerate(f.numeric.special)}
-        return s.map(lambda v: sp.get(str(v), np.nan) if isinstance(v, str) else v)
+
+        def _c(v):
+            if pd.isna(v):
+                return np.nan
+            sv = str(v)
+            if sv in sp:
+                return float(sp[sv])
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return np.nan
+
+        return s.map(_c)
 
     coded = pd.DataFrame({q: code(q, fit[q]) for q in outs})
     scores = coded.apply(_normal_scores)
