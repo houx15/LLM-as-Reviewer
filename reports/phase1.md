@@ -1,0 +1,75 @@
+# Phase 1 report — setup
+
+Status: **in progress** (references and preliminary B4 scoring; checkpoint at the end)
+
+## 1. Final-test rows
+
+Frozen in Phase 0: `data/final_rows.csv` = the benchmark's own 1000-row evaluation sample
+(verified to reproduce the official `sample(n=1000, random_state=42)` draw), with
+`profile_id` equal to the benchmark's. Untouched until Phase 4.
+
+## 2. Input groups and coarse groups
+
+- Input groups (SPEC §2): age banded 18–34 / 35–54 / 55+; every other input uses its
+  config categories; missing input answers form their own "Missing" group (missingness
+  is informative in GSS; e.g. father_education 28% missing).
+- Coarse groups gender × race × age band: 18 possible, of which n ≥ 30 in
+
+| row set | rows | groups with n ≥ 30 |
+| --- | --- | --- |
+| fitting (B1/B2, Study 3 refs) | 539 | 5 |
+| evaluation (reference scoring) | 809 | 8 |
+| pilot (Phase 2) | 500 | 6 |
+
+Sparse Black/Hispanic groups are why B1/B2 use hierarchical fallback
+(coarse → gender×band → band → global, minimum 30 valid answers per output; fallback
+shares reported with the results below).
+
+## 3. References (fitted on the fitting part, scored on the evaluation part)
+
+(pending — 3 runs each, official Types 1–3, scoring seeds 1–3)
+
+| ref | Type 1 | Type 2 | Type 3 | aggregate |
+| --- | --- | --- | --- | --- |
+| B1 marginals | | | | |
+| B2 copula | | | | |
+
+Encoding for B2 [default, documented]: categorical outputs as ordinal codes in config
+level order; numeric outputs as integers; special labels ("No Child") above the numeric
+maximum. The copula is global (normal-scores correlation on the fitting part,
+available-case per pair, projected to the nearest positive-definite matrix); the
+marginals are per coarse group with the same fallback as B1. Both references emit
+complete data (no missing), like the LLM methods.
+
+## 4. Study 3 reference models
+
+- Bayesian network (hill-climb, BIC, ≤ 3 parents): **25 edges**, 29 nodes; age banded;
+  missing answers kept as an explicit NA state; mental_health binned 0 / 1–7 / 8–14 /
+  15–30 and age_first_childbirth "No Child" / 17–24 / 25–34 / 35–45 (state space at
+  n = 539). Saved to `data/study3_refs/bn.pkl`.
+- Discrimination reference (gradient boosting, real vs one-output-swapped):
+  held-out accuracy **0.652** (train 0.678), so the judge's Study 3 gate is
+  AUROC ≥ 0.5 + (0.652−0.5)/2 = **0.576** [default threshold rule].
+- Saved to `data/study3_refs/`; nothing from this module feeds generation.
+
+## 5. Preliminary B4 look
+
+Fresh official generation on the 500 pilot rows (no replication run exists; the agent_*
+folders are extended-schema 500-row experiments from a previous project — see Phase 0
+deviations). 3 scoring seeds.
+
+| run | Type 1 | Type 2 | Type 3 | aggregate | complete-rate |
+| --- | --- | --- | --- | --- | --- |
+| (pending) | | | | | |
+
+The paper's published gemini-2.5-flash GSS 2018 score is **pending from the user**; the
+formal reproduction check happens in Phase 4 with the benchmark sample.
+
+## Deviations and defaults logged
+
+- No existing B4 replication: B4 generated fresh on development rows here; the Phase 4
+  reproduction check compares our fresh B4 (benchmark sample) against the paper's score.
+- B1/B2 hierarchical fallback (min 30 valid per output-level) — logged fallback shares
+  in `runs/phase1/reference_info.json`.
+- BN bins mental_health and age_first_childbirth (documented above).
+- GBM keeps age numeric; inputs one-hot; outputs ordinal codes; missing = −1.
