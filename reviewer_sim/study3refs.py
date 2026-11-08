@@ -99,7 +99,13 @@ def fit_bayesian_network(fit: pd.DataFrame, max_parents: int = 3):
         dag = hc.estimate(scoring_method="bic-d", max_indegree=max_parents)
         model = DiscreteBayesianNetwork(dag.edges())
         model.add_nodes_from(data.columns)  # keep isolated nodes (marginal models)
-        model.fit(data)
+        # Bayesian-parameter fit: MLE alone leaves NaN probabilities at parent
+        # configurations unseen in the fitting part.
+        from pgmpy.parameter_estimator import DiscreteBayesianEstimator  # noqa: PLC0415
+
+        est = DiscreteBayesianEstimator(prior_type="BDeu", equivalent_sample_size=10)
+        model.fit(data, estimator=est)
+    return model
     return model
 
 

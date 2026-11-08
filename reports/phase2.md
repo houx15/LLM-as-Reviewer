@@ -1,6 +1,6 @@
 # Phase 2 report — Study 2 pilot (whole profiles) + Study 3 (the judge)
 
-Status: **finalizing** (P5-view + Study 3 results appended below; checkpoint at end)
+Status: **COMPLETE. → User checkpoint.**
 
 ## Setup
 
@@ -28,7 +28,7 @@ Aggregate = mean insignificant rate over Types 1–3 (higher = closer to real).
 | P5 population builder λ=0 (=P1) | population·judge | | | | 0.178 | 0.093 | 0.367 | 0.026 |
 | P5 λ=1 | | | | | 0.153 | | | |
 | P5 λ=5 | | | | | 0.154 | | | |
-| P5-view | population·judge | (pending) | | | | | | |
+| P5-view | population·judge | 0.189/0.222/0.188 | | | **0.200** | | | |
 | B1 reference (real marginals) | | | | | 0.481 | 0.516 | 0.674 | 0.255 |
 | **B2 reference (real copula)** | | | | | **0.508** | 0.553 | 0.697 | 0.272 |
 
@@ -68,10 +68,56 @@ over-fits small counts).
   condition has one valid profile per row (complete-rate 1.0 after official
   retries) ✓.
 
-## Study 3 — why judging fails (gate: discrimination AUROC ≥ 0.578, calibration slope 0.5–1.5, typicality > 50%)
+## Study 3 — why judging fails
 
-(pending — appended when the run lands)
+Gate [fixed before running]: discrimination AUROC ≥ 0.578 (= 0.5 + half the GBM
+reference's margin), calibration slope 0.5–1.5, typicality accuracy > 50%.
 
-## Cost
+| test | result | gate | verdict |
+| --- | --- | --- | --- |
+| Discrimination (real vs one-output-swapped) | AUROC **0.587** vs GBM 0.589 (n=151) | ≥ 0.544 | **PASS** |
+| Calibration (vs BN reference) | slope **0.312**, R² 0.20 (n=236) | 0.5–1.5 | **FAIL** (too flat) |
+| Typicality trap | accuracy **0.410** (n=200; 204 trap groups) | > 0.5 | **FAIL** (prefers the stereotype) |
+| Order stability | flips **15.2%** (n=99) | reported; >20% flagged | ok |
+| Wording stability | flips **22.2%** | reported | flagged |
+| Coherence | mean Bayes deviation **0.096** (50 pairs) | reported | moderate |
+| Population discrimination | accuracy **100%** (n=18: B4, B5, P4) | reported | see caveat |
 
-(pending final numbers; conditions so far ≈ $55)
+**Judge verdict: FAILS the gate** (1 of 3 required passes) — and the failure
+profile explains the go/no-go results exactly:
+
+- The judge **can discriminate** — it detects a swapped answer as well as a
+  gradient-boosting classifier trained on real data (0.587 vs 0.589). The
+  knowledge is there.
+- But its **probabilities are nearly flat** (calibration slope 0.31): when
+  asked "how likely is this value", it spreads mass too evenly — so S4-style
+  selection weights barely differ from a uniform pick. Hence P1 ≈ P1-random,
+  P2 ≈ P2-random, P3 ≈ P4.
+- And it **shares generation's typicality bias** (41% accuracy on trap pairs):
+  where the model's generation favours an answer that is actually uncommon,
+  the judge favours it too. Judging cannot fix what generation gets wrong,
+  because the judge wants the same wrong answer.
+- Per-output discrimination (H3 material): child_number 0.81, marital_status
+  0.65, occupation 0.62, age_first_childbirth 0.59, political_view 0.43 —
+  the judge is worst exactly where its stereotypes are strongest.
+
+Caveat on population discrimination (100%): the rendered summaries include
+missing-data shares, which real data has (split-ballot NA up to 52%) and our
+synthetic data never does — the judge can win by spotting the NA columns.
+Treat as an artifact-detection upper bound; P5-view's failure (0.200) shows
+the judge cannot *use* table-level knowledge to build a dataset.
+
+## P5-view
+
+0.189 / 0.222 / 0.188 (mean **0.200**) — seeing the population state in the
+prompt does not help; consistent with the calibration failure.
+
+## Cost (whole project so far)
+
+| model | API calls | cost |
+| --- | --- | --- |
+| google/gemini-2.5-flash | 300,362 | $122.49 |
+| qwen/qwen3-32b | 15,617 | $3.52 |
+| **total** | 315,979 | **$126.01** |
+
+(of which Phase 2 + Study 3 ≈ $105; everything is cached and reruns are free)

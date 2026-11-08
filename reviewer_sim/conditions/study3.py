@@ -229,11 +229,20 @@ def run_study3(
             )
             try:
                 obj = json.loads(res.content)
-                v = float(obj.get("p", obj.get("probability", np.nan)))
-                p_j = v if o == 0 else (p_j + v) / 2
+                if not isinstance(obj, dict):
+                    raise ValueError("not a dict")
+                v = None
+                for key in ("p", "probability", "prob", "P", "value"):
+                    if key in obj and isinstance(obj[key], (int, float)):
+                        v = float(obj[key])
+                        break
+                if v is None:
+                    raise ValueError(f"no numeric field in {list(obj)[:3]}")
+                p_j = v if p_j is None else (p_j + v) / 2
             except (json.JSONDecodeError, TypeError, ValueError):
                 p_j = p_j if p_j is not None else 0.5
-        # BN reference
+        # BN reference (fallback: the BN's marginal for the target when the
+        # evidence state is unseen in the fitting part)
         try:
             evd = {**{k: str(row[k]) for k in scored_input_names() if pd.notna(row[k])},
                    **given}
@@ -247,17 +256,26 @@ def run_study3(
             qd = study3refs.bn_query(bn, evd, q)
             p_b = qd.get(_bn_state(q, value), 0.0)
         except Exception:  # noqa: BLE001
-            p_b = 0.5
+            try:
+                qd = study3refs.bn_query(bn, {}, q)  # marginal over the target
+                p_b = qd.get(_bn_state(q, value), 0.5)
+            except Exception:  # noqa: BLE001
+                p_b = 0.5
         pj = float(np.clip(p_j, 1e-4, 1 - 1e-4))
         pb = float(np.clip(p_b, 1e-4, 1 - 1e-4))
+        if not (np.isfinite(pj) and np.isfinite(pb)):
+            continue
         xs_j.append(np.log(pj / (1 - pj)))
         xs_b.append(np.log(pb / (1 - pb)))
         cal_per_output[q].append((pj, pb))
-    X = sm.add_constant(np.array(xs_b))
-    model = sm.OLS(np.array(xs_j), X).fit()
+    xs_j_a = np.array(xs_j)
+    xs_b_a = np.array(xs_b)
+    ok = np.isfinite(xs_j_a) & np.isfinite(xs_b_a) & (np.abs(xs_b_a) < 30)
+    X = sm.add_constant(xs_b_a[ok])
+    model = sm.OLS(xs_j_a[ok], X).fit()
     results["calibration"] = {
         "slope": float(model.params[1]), "r2": float(model.rsquared),
-        "n_items": len(xs_j), "pass": 0.5 <= model.params[1] <= 1.5,
+        "n_items": int(ok.sum()), "pass": bool(0.5 <= model.params[1] <= 1.5),
     }
 
     # ---- 3. typicality trap --------------------------------------------------
@@ -392,8 +410,10 @@ def run_study3(
         "methods": list(methods),
     }
 
-    (out_root / "study3_results.json").write_text(json.dumps(results, indent=1))
-    print(json.dumps(results, indent=1), flush=True)
+    (out_root / "study3_results.json").write_text(
+        json.dumps(results, indent=1, default=float)
+    )
+    print(json.dumps(results, indent=1, default=float), flush=True)
     return results
 
 
