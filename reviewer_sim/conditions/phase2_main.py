@@ -169,6 +169,12 @@ def run_phase2(
             all_results.append(res)
             (out_root / "P5").mkdir(parents=True, exist_ok=True)
             (out_root / "P5" / "s_scale.json").write_text(json.dumps(info))
+            if not skip_p5view:
+                resv = p2.run_p5_view(
+                    client, judge_model, rows, own_pool, j_own, stated, rows_inputs,
+                    real_csv, out_root / "P5-view", wording, 991_000,
+                )
+                all_results.append(resv)
 
     # ---------------- references on pilot rows -------------------------------
     fit = devdata.load_rows("fitting")

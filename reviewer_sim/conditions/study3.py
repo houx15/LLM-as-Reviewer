@@ -33,7 +33,7 @@ def _which_is_real_prompt(row, prof_a: dict, prof_b: dict, seed) -> tuple[str, d
     from ..prompts import label_candidates  # noqa: PLC0415
 
     fs = [f for f in load_fields().values() if f.role == "y"]
-    rng = random.Random(seed)
+    rng = random.Random(int(seed))
     if rng.random() < 0.5:
         a, b = prof_a, prof_b
         real_is = "A"
@@ -76,7 +76,7 @@ def _population_prompt(
     import random  # noqa: PLC0415
 
     ctx = load_context_str()
-    rng = random.Random(seed)
+    rng = random.Random(int(seed))
     if rng.random() < 0.5:
         a, b, real_is = "real", "synthetic", "A"
     else:
@@ -287,6 +287,7 @@ def run_study3(
     for i in order_idx:
         if n_tried >= 200 or not trap_items:
             break
+        i = int(i)
         row = item_rows.iloc[i]
         key, q, b4m, rm = trap_items[int(rng_t.integers(len(trap_items)))]
         p_b4 = pairwise_probability(

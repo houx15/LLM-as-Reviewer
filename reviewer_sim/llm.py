@@ -115,6 +115,7 @@ class LLMClient:
         the API): setting a different seed forces a fresh API call for the
         same prompt, which is how independent runs redo their calls.
         """
+        seed = int(seed) if seed is not None else None
         response_format = {"type": "json_object"} if json_mode else None
         req_hash = self.request_hash(
             model, messages, temperature, top_p, max_completion_tokens, response_format, seed

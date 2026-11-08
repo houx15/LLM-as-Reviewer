@@ -650,7 +650,7 @@ def run_p5_view(
                 if summary:
                     for o in range(n_orders):
                         prompt, meta = judge_profiles_with_tables(
-                            {k: rows.iloc[i][k] for k in _PROMPT_INPUTS},
+                            {k: rows.iloc[i][k] for k in _prompt_inputs()},
                             pool, "\n".join(summary), "\n".join(target),
                             seed + 59 * run + 100 * o + 7 * i,
                         )

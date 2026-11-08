@@ -115,7 +115,7 @@ class Labelled:
 
 def label_candidates(n: int, seed: int) -> Labelled:
     order = list(range(n))
-    rng = random.Random(seed)
+    rng = random.Random(int(seed))
     rng.shuffle(order)
     letters = list(string.ascii_uppercase)
     labels = [letters[i] for i in range(n)]
@@ -377,7 +377,7 @@ def pairwise_prompt(
     """Family 4: pairwise judgment (rule S5). X/Y labels shuffled by seed."""
     fs = load_fields()[question]
     framing = official_framing(inputs, [fs])
-    rng = random.Random(seed)
+    rng = random.Random(int(seed))
     xy = ["X", "Y"] if rng.random() < 0.5 else ["Y", "X"]
     vals = {"X": x_value, "Y": y_value}
     block = f"{xy[0]}: {vals[xy[0]]}\n{xy[1]}: {vals[xy[1]]}"
