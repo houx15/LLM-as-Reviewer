@@ -173,6 +173,19 @@ def cmd_phase2(args) -> None:
         run_study3(client, args.judge_model, REPO / "runs" / "phase2" / "study3", b4)
 
 
+def cmd_phase3(args) -> None:
+    from .conditions.phase3_main import run_phase3  # noqa: PLC0415
+
+    out = run_phase3(
+        judge_model=args.judge_model,
+        weekly_cap=args.weekly_cap,
+    )
+    df = out["results"]
+    print("\n==== Phase 3 summary ====")
+    print(df.groupby("condition")[["type1", "type2", "type3", "aggregate"]]
+          .agg(["mean", "std"]).round(3).to_string())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(prog="reviewer_sim")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -213,6 +226,11 @@ def main() -> None:
     ph2.add_argument("--small-model", default="qwen/qwen3-32b")
     ph2.add_argument("--skip-study3", action="store_true")
     ph2.set_defaults(func=cmd_phase2)
+
+    ph3 = sub.add_parser("phase3")
+    ph3.add_argument("--judge-model", default="google/gemini-2.5-flash")
+    ph3.add_argument("--weekly-cap", type=float, default=195.0)
+    ph3.set_defaults(func=cmd_phase3)
 
     args = ap.parse_args()
     args.func(args)

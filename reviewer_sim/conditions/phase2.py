@@ -307,7 +307,8 @@ def run_r3(client, model, rows, real_csv, out_root, wording, seed, graph):
 # --------------------------------------------------------------------------- #
 
 
-def run_p4(client, model, rows, real_csv, out_root, wording, seed, tables_dir):
+def run_p4(client, model, rows, real_csv, out_root, wording, seed, tables_dir,
+           runs=RUNS):
     out_root = Path(out_root) / wording
     cache = Path(tables_dir) / wording / "tables.json"
     if cache.exists():
@@ -331,7 +332,7 @@ def run_p4(client, model, rows, real_csv, out_root, wording, seed, tables_dir):
 
     all_results = []
     sims = {}
-    for run in RUNS:
+    for run in runs:
         rng = np.random.default_rng(seed + run)
         sim = sample_stated_copula(row_marginals, corr, rows, rng)
         sims[run] = sim
