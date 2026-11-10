@@ -16,19 +16,20 @@ rule; B6 and references included for context.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **P3 judge-copula candidates** | **0.558** | 0.053 | 0.282 | 0.750 | 0.642 | 0.603 | 0.561 | 0.510 |
 | P4 stated tables → copula | 0.546 | 0.042 | 0.299 | 0.750 | 0.590 | 0.581 | 0.558 | 0.499 |
+| B1 reference (real marginals) | 0.513 | 0.021 | 0.523 | 0.717 | 0.300 | — | — | — |
+| B2 reference (real copula) | 0.509 | 0.028 | 0.525 | 0.740 | 0.262 | — | — | — |
 | B5 independent stating | 0.462 | 0.014 | 0.209 | 0.742 | 0.434 | 0.458 | 0.466 | 0.461 |
 | R3 joint stating | 0.436 | 0.032 | 0.142 | 0.746 | 0.421 | 0.453 | 0.451 | 0.405 |
+| B6 batch generation | 0.252 | 0.027 | | | | — | — | — |
 | B4 official generation | 0.212 | 0.010 | 0.073 | 0.440 | 0.123 | — | — | — |
-| B1 reference (real marginals) | (finishing) | | | | | | | |
-| B2 reference (real copula) | (finishing) | | | | | | | |
 
 ## Decisions carried to Phase 4 [pre-set rules]
 
 - **Chosen method: P3** — the eligible method with the highest mean aggregate
   over runs and wordings (0.558 vs P4's 0.546). The +0.012 edge is within
   run-to-run noise (P3's SD 0.053), i.e. P3 and P4 are statistically tied;
-  both clear B2-reference territory (Phase 2: 0.508; Phase 3 references
-  pending). Reported honestly as a tie with P3 nominally first.
+  both clear the B1/B2 references (0.513/0.509). Reported honestly as a tie
+  with P3 nominally first.
 - **Contrast: P4** (P3's random pick among copula candidates is P4 itself),
   isolating whatever the judge adds on full-support candidates (Phase 2/3
   answer: nothing significant).
@@ -57,5 +58,7 @@ rule; B6 and references included for context.
 
 ## Cost
 
-Phase 3 total: **$185.74** (137k + ~140k fresh gemini calls; all cached).
-Project total: **$354.94**. Remaining credit at checkpoint: ~$14.
+Phase 3 total: **$186.10** (B6/references ≈ $0.36; everything cached).
+Project total: **$355.30**. Remaining credit at checkpoint: ~$14.
+
+Phase 3 is COMPLETE — all conditions, all runs, all wordings.
